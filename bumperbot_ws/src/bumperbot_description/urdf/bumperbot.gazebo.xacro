@@ -41,4 +41,10 @@
     <maxVel>1.0</maxVel>
   </gazebo>
 
+  <gazebo>
+      <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+        <parameters>$(find bumperbot_controller)/config/bumperbot_controllers.yaml</parameters>
+      </plugin>
+  </gazebo>
+
 </robot>

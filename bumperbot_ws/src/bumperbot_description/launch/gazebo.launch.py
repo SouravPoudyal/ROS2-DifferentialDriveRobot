@@ -29,6 +29,10 @@ def generate_launch_description():
         name='IGN_GAZEBO_RESOURCE_PATH' if is_ignition else 'GAZEBO_RESOURCE_PATH',
         value=resource_path
     )
+    ign_plugin_env = SetEnvironmentVariable(
+        name='IGN_GAZEBO_SYSTEM_PLUGIN_PATH',
+        value='/opt/ros/humble/lib'
+    )
     robot_description = ParameterValue(
         Command(['xacro ', LaunchConfiguration('model')]),
         value_type=str
@@ -63,6 +67,7 @@ def generate_launch_description():
     return LaunchDescription([
         model_arg,
         resource_env,
+        ign_plugin_env,
         robot_state_publisher_node,
         gazebo,
         gz_ros2_bridge,
