@@ -10,13 +10,14 @@ def generate_launch_description():
 
     wheel_radius = LaunchConfiguration("wheel_radius")
     wheel_separation = LaunchConfiguration("wheel_separation")
+    use_sim_time = LaunchConfiguration("use_sim_time")
 
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["joint_state_broadcaster", 
                    "--controller-manager", "/controller_manager", 
-                   "--controller-manager-timeout", "30"],
+                   "--controller-manager-timeout", "60"],
         output="screen",
     )
     simple_velocity_controller_spawner = Node(
@@ -24,7 +25,7 @@ def generate_launch_description():
         executable="spawner",
         arguments=["simple_velocity_controller",
                    "--controller-manager", "/controller_manager",
-                   "--controller-manager-timeout", "30"],
+                   "--controller-manager-timeout", "60"],
         output="screen",
     )
     simple_controller = Node(
@@ -33,7 +34,7 @@ def generate_launch_description():
         name="simple_controller",
         parameters=[{"wheel_radius": ParameterValue(wheel_radius, value_type=float),
                      "wheel_separation":ParameterValue(wheel_separation, value_type=float),
-                     "use_sim_time": True}],
+                     "use_sim_time": ParameterValue(use_sim_time, value_type=bool)}],
         output="screen",
     )
 

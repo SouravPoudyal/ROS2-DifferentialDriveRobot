@@ -1,9 +1,18 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+    <xacro:arg name="is_sim" default="true"/>
+
     <ros2_control name="RobotSystem" type="system">
         <hardware>
-            <plugin>ign_ros2_control/IgnitionSystem</plugin>
+            <xacro:if value="$(arg is_sim)">
+                <plugin>ign_ros2_control/IgnitionSystem</plugin>
+            </xacro:if>
+            <xacro:unless value="$(arg is_sim)">
+                <plugin>bumperbot_firmware/BumperbotInterface</plugin>
+                <param name="port">/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0</param>
+                <param name="counts_per_rev">1320</param>
+            </xacro:unless>
         </hardware>
 
         <joint name="wheel_left_joint">
@@ -25,8 +34,3 @@
         </joint>
     </ros2_control>
 </robot>
-
-
-
-
-
