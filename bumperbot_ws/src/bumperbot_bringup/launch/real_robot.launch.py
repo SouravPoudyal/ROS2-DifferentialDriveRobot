@@ -48,6 +48,7 @@ def generate_launch_description():
             "use_sim_time": "false",
             "wheel_radius": LaunchConfiguration("wheel_radius"),
             "wheel_separation": LaunchConfiguration("wheel_separation"),
+            "controllers_file": os.path.join(ctrl_dir, "config", "bumperbot_controllers_real.yaml"),
         }.items())   
 
     return LaunchDescription([
