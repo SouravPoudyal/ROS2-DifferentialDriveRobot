@@ -37,7 +37,7 @@ def generate_launch_description():
         name="controller_manager",
         parameters=[
             {"robot_description": robot_description},
-            os.path.join(ctrl_dir, "config", "bumperbot_controllers.yaml"),
+            os.path.join(ctrl_dir, "config", "bumperbot_controllers_real.yaml"),
             {"use_sim_time": False, "update_rate": 50},
         ],
         output="screen")
