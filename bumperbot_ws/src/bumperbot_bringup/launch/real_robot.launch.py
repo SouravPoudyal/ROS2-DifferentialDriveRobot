@@ -34,7 +34,6 @@ def generate_launch_description():
     controller_manager = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        name="controller_manager",
         parameters=[
             {"robot_description": robot_description},
             os.path.join(ctrl_dir, "config", "bumperbot_controllers_real.yaml"),
