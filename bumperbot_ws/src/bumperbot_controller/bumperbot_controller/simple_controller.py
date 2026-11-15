@@ -27,11 +27,18 @@ class SimpleController(Node):
         conversion = np.array([[self.r / 2, self.r / 2], 
                                [self.r / self.L, -self.r / self.L]])
 
+        self.left_prev = None
+        self.right_prev = None
+        self.prev_time = None
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
+
         self.inv_conversion = np.linalg.inv(conversion)
         self.wheel_cmd_pub = self.create_publisher(Float64MultiArray, "simple_velocity_controller/commands", 10)
         self.odom_pub = self.create_publisher(Odometry, "bumperbot_controller/odom", 10)
         self.vel_sub = self.create_subscription(Twist, "bumperbot_controller/cmd_vel", self.vel_callback, 10)
-        self.joint_sub = self.create_subscription(JointState, "joint_state", self.joint_callback, 10)
+        self.joint_sub = self.create_subscription(JointState, "joint_states", self.joint_callback, 10)
 
         self.odom_msg = Odometry()
         self.odom_msg.header.frame_id = "odom"
@@ -41,12 +48,14 @@ class SimpleController(Node):
         self.tf_msg = TransformStamped()
         self.tf_msg.header.frame_id = "odom"
         self.tf_msg.child_frame_id = "base_footprint"
+
     def vel_callback(self, msg: Twist):
         robot_speed = np.array([[msg.linear.x], [msg.angular.z]])
         wheel_speed = self.inv_conversion @ robot_speed
         wheel_cmd = Float64MultiArray()
         wheel_cmd.data = [float(wheel_speed[1, 0]), float(wheel_speed[0, 0])]
         self.wheel_cmd_pub.publish(wheel_cmd)
+
     def joint_callback(self, msg):
         try:
             left = msg.position[msg.name.index(LEFT_JOINT)]

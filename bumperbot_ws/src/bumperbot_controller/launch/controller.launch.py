@@ -32,7 +32,8 @@ def generate_launch_description():
         executable="simple_controller.py",
         name="simple_controller",
         parameters=[{"wheel_radius": ParameterValue(wheel_radius, value_type=float),
-                     "wheel_separation":ParameterValue(wheel_separation, value_type=float)}],
+                     "wheel_separation":ParameterValue(wheel_separation, value_type=float),
+                     "use_sim_time": True}],
         output="screen",
     )
 
