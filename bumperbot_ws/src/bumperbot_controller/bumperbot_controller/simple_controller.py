@@ -74,6 +74,12 @@ class SimpleController(Node):
 
         dp_left = left - self.left_prev
         dp_right = right - self.right_prev
+
+        if dp_left == 0.0 and dp_right == 0.0:
+            # No new encoder data yet. Keep prev_time so the next dt
+            # covers the whole telemetry period.
+            return
+        
         self.left_prev, self.right_prev, self.prev_time = left, right, stamp
 
         d_s = self.r * (dp_right + dp_left) / 2
