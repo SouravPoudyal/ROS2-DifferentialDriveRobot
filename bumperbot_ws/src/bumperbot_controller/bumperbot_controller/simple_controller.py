@@ -64,8 +64,9 @@ class SimpleController(Node):
             return
 
         stamp = Time.from_msg(msg.header.stamp)
-        if self.prev_time is None:  # first message: just store the reference
+        if self.prev_time is None:  # first message: store the reference and publish the start pose
             self.left_prev, self.right_prev, self.prev_time = left, right, stamp
+            self.publish_odom(msg.header.stamp, 0.0, 0.0)
             return
 
         dt = (stamp - self.prev_time).nanoseconds / 1e9
@@ -75,28 +76,27 @@ class SimpleController(Node):
         dp_left = left - self.left_prev
         dp_right = right - self.right_prev
 
-        if dp_left == 0.0 and dp_right == 0.0:
-            # No new encoder data yet. Keep prev_time so the next dt
-            # covers the whole telemetry period.
+        # Repeated telemetry sample: wait for a longer interval.
+        # A stopped robot still gets an update every 0.1 s.
+        if dp_left == 0.0 and dp_right == 0.0 and dt < 0.1:
             return
-        
+
         self.left_prev, self.right_prev, self.prev_time = left, right, stamp
 
         d_s = self.r * (dp_right + dp_left) / 2
         d_theta = self.r * (dp_right - dp_left) / self.L
-        linear = d_s / dt
-        angular = d_theta / dt
 
-        # Midpoint heading is more accurate than the end heading
         self.x += d_s * math.cos(self.theta + d_theta / 2)
         self.y += d_s * math.sin(self.theta + d_theta / 2)
         self.theta += d_theta
 
+        self.publish_odom(msg.header.stamp, d_s / dt, d_theta / dt)
+
+    def publish_odom(self, stamp, linear, angular):
         qz = math.sin(self.theta / 2)
         qw = math.cos(self.theta / 2)
-        now = self.get_clock().now().to_msg()
 
-        self.odom_msg.header.stamp = now
+        self.odom_msg.header.stamp = stamp
         self.odom_msg.pose.pose.position.x = self.x
         self.odom_msg.pose.pose.position.y = self.y
         self.odom_msg.pose.pose.orientation.z = qz
@@ -105,7 +105,7 @@ class SimpleController(Node):
         self.odom_msg.twist.twist.angular.z = angular
         self.odom_pub.publish(self.odom_msg)
 
-        self.tf_msg.header.stamp = now
+        self.tf_msg.header.stamp = stamp
         self.tf_msg.transform.translation.x = self.x
         self.tf_msg.transform.translation.y = self.y
         self.tf_msg.transform.rotation.z = qz
