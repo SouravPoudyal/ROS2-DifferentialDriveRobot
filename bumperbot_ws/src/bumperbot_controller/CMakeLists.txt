@@ -16,6 +16,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Installs the executable script
 install(PROGRAMS
   ${PROJECT_NAME}/simple_controller.py
+  ${PROJECT_NAME}/noisy_controller.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

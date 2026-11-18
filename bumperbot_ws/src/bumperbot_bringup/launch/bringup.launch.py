@@ -8,6 +8,13 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
+NOISY_DEFAULTS = {
+    "use_noisy": "false",
+    "noise_position_std": "0.002", "noise_increment_ratio": "0.01", "noise_cpr": "1320.0",
+    "noise_seed": "-1", "sample_rate_hz": "20.0", "sample_jitter_s": "0.005",
+    "slew_limit": "50.0", "lag_tau": "0.15", "min_speed": "1.0",
+    "left_gain": "1.0", "right_gain": "1.0",
+}
 
 def generate_launch_description():
     bringup_dir = get_package_share_directory("bumperbot_bringup")
@@ -28,6 +35,8 @@ def generate_launch_description():
     use_rviz_arg = DeclareLaunchArgument(
         "use_rviz", default_value="false",
         description="Also start RViz")
+    
+    noisy_declares = [DeclareLaunchArgument(k, default_value=v) for k, v in NOISY_DEFAULTS.items()]
     
     simulated = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_dir, "launch", "simulated_robot.launch.py")),
@@ -54,6 +63,7 @@ def generate_launch_description():
         use_sim_arg,
         use_joystick_arg,
         use_rviz_arg,
+        *noisy_declares,
         simulated,
         real,
         joystick,
