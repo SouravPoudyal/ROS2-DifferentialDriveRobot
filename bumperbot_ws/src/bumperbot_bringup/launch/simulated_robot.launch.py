@@ -12,6 +12,7 @@ NOISY_DEFAULTS = {
     "noise_seed": "-1", "sample_rate_hz": "20.0", "sample_jitter_s": "0.005",
     "slew_limit": "50.0", "lag_tau": "0.15", "min_speed": "1.0",
     "left_gain": "1.0", "right_gain": "1.0",
+    "use_simple_controller": "true"
 }
 
 

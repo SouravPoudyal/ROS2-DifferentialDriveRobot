@@ -8,9 +8,31 @@ controller_manager:
 
     simple_velocity_controller:
       type: velocity_controllers/JointGroupVelocityController
+      
+    bumperbot_controller:
+      type: diff_drive_controller/DiffDriveController
 
 simple_velocity_controller:
   ros__parameters:
     joints:
       - wheel_left_joint   # order matters: the node publishes [left, right]
       - wheel_right_joint
+
+bumperbot_controller:
+  ros__parameters:
+    left_wheel_names: ['wheel_left_joint']
+    right_wheel_names: ['wheel_right_joint']
+    wheel_separation: 0.1402
+    wheel_radius: 0.033
+    use_stamped_vel: false
+    odom_frame_id: odom
+    base_frame_id: base_footprint
+    enable_odom_tf: true
+    publish_rate: 50.0
+    cmd_vel_timeout: 0.5
+    open_loop: false
+    velocity_rolling_window_size: 10
+    linear.x.has_velocity_limits: true
+    linear.x.max_velocity: 0.5
+    angular.z.has_velocity_limits: true
+    angular.z.max_velocity: 2.0

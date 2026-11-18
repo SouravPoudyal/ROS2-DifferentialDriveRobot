@@ -17,6 +17,8 @@ def generate_launch_description():
     wheel_radius_arg = DeclareLaunchArgument("wheel_radius", default_value="0.033")
     wheel_separation_arg = DeclareLaunchArgument("wheel_separation", default_value="0.1402")
 
+    use_simple_controller_arg = DeclareLaunchArgument("use_simple_controller", default_value="true")
+
     robot_description = ParameterValue(
         Command(["xacro ", os.path.join(desc_dir, "urdf", "bumperbot.urdf.xacro"),
                  " is_sim:=false"]),
@@ -48,11 +50,13 @@ def generate_launch_description():
             "wheel_radius": LaunchConfiguration("wheel_radius"),
             "wheel_separation": LaunchConfiguration("wheel_separation"),
             "controllers_file": os.path.join(ctrl_dir, "config", "bumperbot_controllers_real.yaml"),
+            "use_simple_controller": LaunchConfiguration("use_simple_controller"),
         }.items())   
 
     return LaunchDescription([
         wheel_radius_arg,
         wheel_separation_arg,
+        use_simple_controller_arg,
         robot_state_publisher,
         controller_manager,
         controller,
