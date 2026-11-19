@@ -12,6 +12,7 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(PkgConfig REQUIRED)
+find_package(rclpy REQUIRED)
 
 pkg_check_modules(SERIAL libserial)
 
@@ -43,6 +44,11 @@ ament_export_dependencies(
   rclcpp_lifecycle 
   hardware_interface 
   pluginlib
+  )
+
+install(PROGRAMS
+  ${PROJECT_NAME}/mpu6050_driver.py
+  DESTINATION lib/${PROJECT_NAME}
   )
 
 

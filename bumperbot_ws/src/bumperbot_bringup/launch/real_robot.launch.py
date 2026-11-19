@@ -43,6 +43,12 @@ def generate_launch_description():
         ],
         output="screen")
 
+    mpu6050 = Node(
+        package="bumperbot_firmware",
+        executable="mpu6050_driver.py",
+        parameters=[{"frame_id": "imu_link", "axis_map": ["+x", "-y", "-z"]}],
+        output="screen")
+
     controller = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(ctrl_dir, "launch", "controller.launch.py")),
         launch_arguments={
@@ -59,5 +65,6 @@ def generate_launch_description():
         use_simple_controller_arg,
         robot_state_publisher,
         controller_manager,
+        mpu6050,
         controller,
     ])

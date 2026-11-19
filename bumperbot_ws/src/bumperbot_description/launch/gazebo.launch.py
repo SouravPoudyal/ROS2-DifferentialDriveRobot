@@ -50,10 +50,12 @@ def generate_launch_description():
         )
 
     clock_msg = "ignition.msgs.Clock" if is_ignition else "gz.msgs.Clock"
+    imu_msg = "ignition.msgs.IMU" if is_ignition else "gz.msgs.IMU"
     gz_ros2_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=[f'/clock@rosgraph_msgs/msg/Clock[{clock_msg}'],
+        arguments=[f'/clock@rosgraph_msgs/msg/Clock[{clock_msg}',
+                   f'/imu@sensor_msgs/msg/Imu[{imu_msg}',],
         output='screen'
     )
 
