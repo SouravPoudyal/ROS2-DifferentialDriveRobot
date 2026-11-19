@@ -46,7 +46,9 @@ def generate_launch_description():
     mpu6050 = Node(
         package="bumperbot_firmware",
         executable="mpu6050_driver.py",
-        parameters=[{"frame_id": "imu_link", "axis_map": ["+x", "-y", "-z"]}],
+        parameters=[{"frame_id": "imu_link",
+                    "axis_map": ["-y", "-x", "-z"],
+                    "accel_scale": [0.857, 0.857, 0.857]}],
         output="screen")
 
     controller = IncludeLaunchDescription(
