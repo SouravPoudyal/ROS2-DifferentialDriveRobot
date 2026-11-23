@@ -1,0 +1,7 @@
+955 samples in 20s (~48 Hz)
+gyro_x: mean=-0.0089  noise_std=0.0078
+gyro_y: mean=+0.0241  noise_std=0.0161
+gyro_z: mean=+0.4976  noise_std=0.0208
+acc_x: mean=+0.0894  noise_std=0.1085
+acc_y: mean=-0.0429  noise_std=0.1211
+acc_z: mean=+9.7494  noise_std=0.0509
