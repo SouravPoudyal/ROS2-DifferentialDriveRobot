@@ -10,11 +10,12 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 NOISY_DEFAULTS = {
     "use_noisy": "false",
-    "noise_position_std": "0.002", "noise_increment_ratio": "0.01", "noise_cpr": "1320.0",
-    "noise_seed": "-1", "sample_rate_hz": "20.0", "sample_jitter_s": "0.005",
-    "slew_limit": "50.0", "lag_tau": "0.15", "min_speed": "1.0",
-    "left_gain": "1.0", "right_gain": "1.0",
-    "use_simple_controller": "true"
+    "noise_position_std": "0.0", "noise_increment_ratio": "0.01", "noise_cpr": "1320.0",
+    "noise_seed": "-1", "sample_rate_hz": "22.0", "sample_jitter_s": "0.0097",
+    "slew_limit": "50.0", "lag_tau": "0.19", "min_speed": "1.0",
+    "left_gain": "1.0", "right_gain": "0.991",
+    "velocity_noise_ratio": "0.2",
+    "use_simple_controller": "true",
 }
 
 def generate_launch_description():
