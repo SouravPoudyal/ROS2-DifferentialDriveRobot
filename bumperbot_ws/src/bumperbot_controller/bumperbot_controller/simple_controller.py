@@ -15,12 +15,21 @@ LEFT_JOINT = "wheel_left_joint"
 RIGHT_JOINT = "wheel_right_joint"
 
 class SimpleController(Node):
+    # Subclasses can override these (the noisy controller does).
+    ODOM_TOPIC = "bumperbot_controller/odom"
+    TF_CHILD_FRAME = "base_footprint"
+
     def __init__(self):
         super().__init__("simple_controller")
         self.declare_parameter("wheel_radius", 0.033)
         self.declare_parameter("wheel_separation", 0.1402)
+        # False: compute odometry only, do not command the wheels.
+        self.declare_parameter("drive_wheels", True)
+        self.declare_parameter("odom_topic", self.ODOM_TOPIC)
+        self.declare_parameter("tf_child_frame", self.TF_CHILD_FRAME)
         self.r = self.get_parameter("wheel_radius").get_parameter_value().double_value
         self.L = self.get_parameter("wheel_separation").get_parameter_value().double_value
+        self.drive_wheels = self.get_parameter("drive_wheels").value
         self.get_logger().info(f"Wheel radius: {self.r}, Wheel separation: {self.L}")
 
         # [v, w] = A @ [w_right, w_left]
@@ -36,7 +45,7 @@ class SimpleController(Node):
 
         self.inv_conversion = np.linalg.inv(conversion)
         self.wheel_cmd_pub = self.create_publisher(Float64MultiArray, "simple_velocity_controller/commands", 10)
-        self.odom_pub = self.create_publisher(Odometry, "bumperbot_controller/odom", 10)
+        self.odom_pub = self.create_publisher(Odometry, self.get_parameter("odom_topic").value, 10)
         self.vel_sub = self.create_subscription(Twist, "bumperbot_controller/cmd_vel", self.vel_callback, 10)
         self.joint_sub = self.create_subscription(JointState, "joint_states", self.joint_callback, 10)
 
@@ -47,9 +56,11 @@ class SimpleController(Node):
         self.br = TransformBroadcaster(self)
         self.tf_msg = TransformStamped()
         self.tf_msg.header.frame_id = "odom"
-        self.tf_msg.child_frame_id = "base_footprint"
+        self.tf_msg.child_frame_id = self.get_parameter("tf_child_frame").value
 
     def vel_callback(self, msg: Twist):
+        if not self.drive_wheels:
+            return
         robot_speed = np.array([[msg.linear.x], [msg.angular.z]])
         wheel_speed = self.inv_conversion @ robot_speed
         wheel_cmd = Float64MultiArray()
