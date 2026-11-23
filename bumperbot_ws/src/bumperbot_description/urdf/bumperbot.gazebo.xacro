@@ -46,13 +46,18 @@
         <parameters>$(find bumperbot_controller)/config/bumperbot_controllers.yaml</parameters>
       </plugin>
       <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"></plugin>
+      <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>odom</odom_frame>
+        <robot_base_frame>base_footprint</robot_base_frame>
+        <dimensions>2</dimensions>
+      </plugin>
   </gazebo>
 
   <!--IMU-->
   <gazebo reference="imu_link">
     <sensor name="imu" type="imu">
       <always_on>true</always_on>
-      <update_rate>100</update_rate>
+      <update_rate>50</update_rate>
       <gz_frame_id>imu_link</gz_frame_id>
       <topic>imu</topic>
       <imu>
@@ -72,7 +77,11 @@
           <z>
             <noise type="gaussian">
               <mean>0.0</mean>
-              <stddev>2e-4</stddev>
+              <stddev>0.021</stddev>
+              <bias_mean>0.002</bias_mean>
+              <bias_stddev>0.001</bias_stddev>
+              <dynamic_bias_stddev>0.0005</dynamic_bias_stddev>
+              <dynamic_bias_correlation_time>300</dynamic_bias_correlation_time>
             </noise>
           </z>
         </angular_velocity>

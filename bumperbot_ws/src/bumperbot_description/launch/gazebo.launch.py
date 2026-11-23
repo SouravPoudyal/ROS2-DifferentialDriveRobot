@@ -23,6 +23,7 @@ def generate_launch_description():
             bumperbot_description_dir, 'urdf', 'bumperbot.urdf.xacro'),
         description='Absolute path to robot urdf file'
     )
+    odom_msg = "ignition.msgs.Odometry" if is_ignition else "gz.msgs.Odometry"
 
     resource_path = str(Path(bumperbot_description_dir).parent.resolve())
     resource_env = SetEnvironmentVariable(
@@ -55,7 +56,8 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[f'/clock@rosgraph_msgs/msg/Clock[{clock_msg}',
-                   f'/imu@sensor_msgs/msg/Imu[{imu_msg}',],
+                   f'/imu@sensor_msgs/msg/Imu[{imu_msg}',
+                   f'/model/bumperbot/odometry@nav_msgs/msg/Odometry[{odom_msg}',],
         output='screen'
     )
 
