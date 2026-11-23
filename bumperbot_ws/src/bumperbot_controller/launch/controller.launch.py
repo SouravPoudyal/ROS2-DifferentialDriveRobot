@@ -7,10 +7,11 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 NOISY_DEFAULTS = {
-    "noise_position_std": "0.002", "noise_increment_ratio": "0.01", "noise_cpr": "1320.0",
-    "noise_seed": "-1", "sample_rate_hz": "20.0", "sample_jitter_s": "0.005",
-    "slew_limit": "50.0", "lag_tau": "0.15", "min_speed": "1.0",
-    "left_gain": "1.0", "right_gain": "1.0",
+    "noise_position_std": "0.0", "noise_increment_ratio": "0.01", "noise_cpr": "1320.0",
+    "noise_seed": "-1", "sample_rate_hz": "22.0", "sample_jitter_s": "0.0097",
+    "slew_limit": "50.0", "lag_tau": "0.19", "min_speed": "1.0",
+    "left_gain": "1.0", "right_gain": "0.991",
+    "velocity_noise_ratio": "0.2",
     "use_simple_controller": "true",
 }
 
@@ -56,17 +57,33 @@ def launch_setup(context, *args, **kwargs):
                 "min_speed": float(cfg("min_speed")),
                 "left_gain": float(cfg("left_gain")),
                 "right_gain": float(cfg("right_gain")),
+                "velocity_noise_ratio": float(cfg("velocity_noise_ratio")),
             })
 
         controller_node = Node(
             package="bumperbot_controller",
             executable="noisy_controller.py" if use_noisy else "simple_controller.py",
-            name="simple_controller",
+            name="noisy_controller" if use_noisy else "simple_controller",
             parameters=[params],
             output="screen",
         )
         actions += [spawner("simple_velocity_controller", controllers_file),
                     controller_node]
+        if use_noisy:
+            # Clean odometry (odom -> base_footprint) next to the noisy controller.
+            # It only observes the joint states; the noisy node drives the wheels.
+            actions.append(Node(
+                package="bumperbot_controller",
+                executable="simple_controller.py",
+                name="simple_controller",
+                parameters=[{
+                    "wheel_radius": params["wheel_radius"],
+                    "wheel_separation": params["wheel_separation"],
+                    "use_sim_time": use_sim_time,
+                    "drive_wheels": False,
+                }],
+                output="screen",
+            ))
     else:
         # ---- standard diff_drive_controller (publishes odom and TF itself) ----
         # It listens on cmd_vel_unstamped (Twist, use_stamped_vel: false), so a relay

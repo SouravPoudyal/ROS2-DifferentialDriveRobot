@@ -18,18 +18,24 @@ from bumperbot_controller.simple_controller import (
 class NoisyController(SimpleController):
     """SimpleController with a real-robot-like wheel response and noisy, sampled encoders."""
 
+    # Separate topic and TF child so it can run next to a clean SimpleController.
+    ODOM_TOPIC = "bumperbot_controller/odom_noisy"
+    TF_CHILD_FRAME = "base_footprint_noisy"
+
     def __init__(self):
         super().__init__()
+        
+        self.odom_msg.child_frame_id = "base_footprint_ekf"
 
         # --- reading noise ---
-        self.declare_parameter("position_noise_std", 0.002)    # rad, jitter per sample
+        self.declare_parameter("position_noise_std", 0.0)    # rad, jitter per sample
         self.declare_parameter("increment_noise_ratio", 0.01)  # relative std of each increment
         self.declare_parameter("quantization_cpr", 1320.0)     # 0 = off
         self.declare_parameter("seed", -1)                     # -1 = random
 
         # --- telemetry timing ---
-        self.declare_parameter("sample_rate_hz", 20.0)         # 0 = update on every message
-        self.declare_parameter("sample_jitter_s", 0.005)       # std of the sample period
+        self.declare_parameter("sample_rate_hz", 22.0)         # 0 = update on every message
+        self.declare_parameter("sample_jitter_s", 0.0097)       # std of the sample period
 
         # --- velocity estimation ---
         self.declare_parameter("vel_filter_alpha", 0.6)        # per sample
@@ -37,10 +43,21 @@ class NoisyController(SimpleController):
         # --- wheel response (command side) ---
         self.declare_parameter("command_rate_hz", 50.0)
         self.declare_parameter("slew_limit", 50.0)             # rad/s^2, 0 = off
-        self.declare_parameter("lag_tau", 0.15)                # s, first-order lag, 0 = off
+        self.declare_parameter("lag_tau", 0.19)                # s, first-order lag, 0 = off
         self.declare_parameter("min_speed", 1.0)               # rad/s, below this -> 0
         self.declare_parameter("left_gain", 1.0)               # wheel mismatch tests
-        self.declare_parameter("right_gain", 1.0)
+        self.declare_parameter("right_gain", 0.991)
+
+        # --- velocity noise (common to both wheels, grows with speed) ---
+        self.declare_parameter("velocity_noise_ratio", 0.2)    # relative std of the published speed, 0 = off
+        self.declare_parameter("vel_cov_floor_v", 6e-6)        # m^2/s^2, odom vx covariance at rest
+        self.declare_parameter("vel_cov_floor_w", 1.5e-3)      # rad^2/s^2, odom wz covariance at rest
+
+        #covariances
+        self.odom_msg.twist.covariance[0] = 0.02   # vx
+        self.odom_msg.twist.covariance[7] = 0.02   # vy
+        self.odom_msg.twist.covariance[35] = 0.02   # yaw rate
+        
 
         p = lambda n: self.get_parameter(n).value
         self.pos_std = p("position_noise_std")
@@ -58,6 +75,10 @@ class NoisyController(SimpleController):
         self.lag_tau = p("lag_tau")
         self.min_speed = p("min_speed")
         self.gains = [p("left_gain"), p("right_gain")]  # [left, right]
+
+        self.vel_noise_ratio = p("velocity_noise_ratio")
+        self.cov_floor_v = p("vel_cov_floor_v")
+        self.cov_floor_w = p("vel_cov_floor_w")
 
         self.true_prev = {}
         self.noisy_pos = {}
@@ -122,6 +143,21 @@ class NoisyController(SimpleController):
         out = Float64MultiArray()
         out.data = [float(v) for v in self.cmd_filtered]  # [left, right]
         self.wheel_cmd_pub.publish(out)
+
+    # ---------- velocity noise: common scale error on the published twist ----------
+    def publish_odom(self, stamp, linear, angular):
+        if self.vel_noise_ratio > 0.0:
+            # Declare the covariance that matches the noise below (it grows with speed).
+            self.odom_msg.twist.covariance[0] = (
+                (self.vel_noise_ratio * linear) ** 2 + self.cov_floor_v)
+            self.odom_msg.twist.covariance[35] = (
+                (self.vel_noise_ratio * angular) ** 2 + self.cov_floor_w)
+            # One factor for both wheels: vx and wz are scaled together, like a timing
+            # error in the speed estimate. The integrated pose is not affected.
+            k = 1.0 + self.rng.gauss(0.0, self.vel_noise_ratio)
+            linear *= k
+            angular *= k
+        super().publish_odom(stamp, linear, angular)
 
     # ---------- reading side: noisy, sampled encoders ----------
     def joint_callback(self, msg):
