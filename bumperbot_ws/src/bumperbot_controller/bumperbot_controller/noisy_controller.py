@@ -30,7 +30,7 @@ class NoisyController(SimpleController):
         # --- reading noise ---
         self.declare_parameter("position_noise_std", 0.0)    # rad, jitter per sample
         self.declare_parameter("increment_noise_ratio", 0.01)  # relative std of each increment
-        self.declare_parameter("quantization_cpr", 1320.0)     # 0 = off
+        self.declare_parameter("quantization_cpr", 1880.0)     # 0 = off
         self.declare_parameter("seed", -1)                     # -1 = random
 
         # --- telemetry timing ---

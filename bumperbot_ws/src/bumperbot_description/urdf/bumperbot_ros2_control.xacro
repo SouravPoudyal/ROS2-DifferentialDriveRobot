@@ -11,7 +11,7 @@
             <xacro:unless value="$(arg is_sim)">
                 <plugin>bumperbot_firmware/BumperbotInterface</plugin>
                 <param name="port">/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0</param>
-                <param name="counts_per_rev">1320</param>
+                <param name="counts_per_rev">1880</param>
             </xacro:unless>
         </hardware>
 

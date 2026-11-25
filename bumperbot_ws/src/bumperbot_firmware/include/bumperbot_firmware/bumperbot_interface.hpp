@@ -37,7 +37,7 @@ namespace bumperbot_firmware
 
         LibSerial::SerialPort arduino_;
         std::string port_;
-        double cpr_{1320.0};
+        double cpr_{1880.0};
         double rad_per_count_{0.0};
         int right_idx_{-1};
         int left_idx_{-1};

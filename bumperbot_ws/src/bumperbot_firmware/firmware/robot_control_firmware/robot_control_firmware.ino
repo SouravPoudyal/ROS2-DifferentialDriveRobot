@@ -23,7 +23,7 @@ ISR(PCINT2_vect) {
 }
 
 // --- Velocity settings ---
-const float CPR = 1320.0;                    // counts per wheel revolution
+const float CPR = 1880.0;                    // counts per wheel revolution
 const float RAD_PER_COUNT = 2.0 * PI / CPR;
 const unsigned long CTRL_DT_MS = 20;         // 50 Hz velocity + PID loop
 const float ALPHA = 0.3;                     // velocity low-pass
