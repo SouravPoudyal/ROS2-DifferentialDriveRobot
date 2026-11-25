@@ -189,8 +189,10 @@ class NoisyController(SimpleController):
 
                 self.true_prev[name] = true_pos
 
-                value = self.noisy_pos[name] + self.rng.gauss(
-                    0.0, self.pos_std)
+                # Jitter only while the wheel moves: the real encoders are silent at rest.
+                moving = prev is not None and abs(true_pos - prev) > 1e-6
+                value = self.noisy_pos[name] + (
+                    self.rng.gauss(0.0, self.pos_std) if moving else 0.0)
 
                 if self.cpr > 0.0:
                     step = 2.0 * math.pi / self.cpr

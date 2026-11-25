@@ -7,7 +7,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 NOISY_DEFAULTS = {
-    "noise_position_std": "0.0", "noise_increment_ratio": "0.01", "noise_cpr": "1880.0",
+    "noise_position_std": "0.0025", "noise_increment_ratio": "0.01", "noise_cpr": "1880.0",
     "noise_seed": "-1", "sample_rate_hz": "22.0", "sample_jitter_s": "0.0097",
     "slew_limit": "50.0", "lag_tau": "0.19", "min_speed": "1.0",
     "left_gain": "1.0", "right_gain": "0.991",
