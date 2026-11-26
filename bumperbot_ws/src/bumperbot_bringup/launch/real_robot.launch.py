@@ -59,6 +59,9 @@ def generate_launch_description():
             "wheel_separation": LaunchConfiguration("wheel_separation"),
             "controllers_file": os.path.join(ctrl_dir, "config", "bumperbot_controllers_real.yaml"),
             "use_simple_controller": LaunchConfiguration("use_simple_controller"),
+            "odom_child_frame": "base_footprint_ekf",
+            "vx_cov": "0.004",
+            "wz_cov": "0.04",
         }.items())   
 
     return LaunchDescription([

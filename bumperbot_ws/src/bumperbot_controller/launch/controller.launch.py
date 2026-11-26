@@ -59,6 +59,14 @@ def launch_setup(context, *args, **kwargs):
                 "right_gain": float(cfg("right_gain")),
                 "velocity_noise_ratio": float(cfg("velocity_noise_ratio")),
             })
+        
+        if not use_noisy:
+            # Plain controller (real robot): what the EKF needs from the odometry message.
+            params.update({
+                "odom_child_frame": cfg("odom_child_frame"),
+                "vx_cov": float(cfg("vx_cov")),
+                "wz_cov": float(cfg("wz_cov")),
+            })       
 
         controller_node = Node(
             package="bumperbot_controller",
@@ -106,11 +114,16 @@ def generate_launch_description():
     default_controllers_file = os.path.join(
         get_package_share_directory("bumperbot_controller"),
         "config", "bumperbot_controllers.yaml")
+    
+
     return LaunchDescription([
         DeclareLaunchArgument("wheel_radius", default_value="0.033"),
         DeclareLaunchArgument("wheel_separation", default_value="0.1402"),
         DeclareLaunchArgument("use_sim_time", default_value="true"),
         DeclareLaunchArgument("controllers_file", default_value=default_controllers_file),
+        DeclareLaunchArgument("odom_child_frame", default_value="base_footprint"),
+        DeclareLaunchArgument("vx_cov", default_value="0.0"),
+        DeclareLaunchArgument("wz_cov", default_value="0.0"),
         DeclareLaunchArgument("use_noisy", default_value="false",
                               description="Run the noise-injecting controller (simple controller only)"),
         *[DeclareLaunchArgument(k, default_value=v) for k, v in NOISY_DEFAULTS.items()],

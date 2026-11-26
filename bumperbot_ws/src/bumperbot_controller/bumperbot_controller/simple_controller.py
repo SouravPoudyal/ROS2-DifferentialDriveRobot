@@ -27,6 +27,9 @@ class SimpleController(Node):
         self.declare_parameter("drive_wheels", True)
         self.declare_parameter("odom_topic", self.ODOM_TOPIC)
         self.declare_parameter("tf_child_frame", self.TF_CHILD_FRAME)
+        self.declare_parameter("odom_child_frame", "base_footprint")
+        self.declare_parameter("vx_cov", 0.0)
+        self.declare_parameter("wz_cov", 0.0)
         self.r = self.get_parameter("wheel_radius").get_parameter_value().double_value
         self.L = self.get_parameter("wheel_separation").get_parameter_value().double_value
         self.drive_wheels = self.get_parameter("drive_wheels").value
@@ -51,7 +54,10 @@ class SimpleController(Node):
 
         self.odom_msg = Odometry()
         self.odom_msg.header.frame_id = "odom"
-        self.odom_msg.child_frame_id = "base_footprint"
+        self.odom_msg.child_frame_id = self.get_parameter("odom_child_frame").value
+        self.odom_msg.twist.covariance[0] = self.get_parameter("vx_cov").value
+        self.odom_msg.twist.covariance[7] = self.get_parameter("vx_cov").value
+        self.odom_msg.twist.covariance[35] = self.get_parameter("wz_cov").value
 
         self.br = TransformBroadcaster(self)
         self.tf_msg = TransformStamped()
