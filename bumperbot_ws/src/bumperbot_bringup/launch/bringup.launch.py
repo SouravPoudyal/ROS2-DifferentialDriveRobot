@@ -4,7 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -72,10 +72,15 @@ def generate_launch_description():
         output="screen",
         condition=IfCondition(use_rviz))
 
+    # simulation: noisy controller output, real robot: the controller's own odometry
+    odom_topic = PythonExpression([
+        "'bumperbot_controller/odom_noisy' if '", use_sim,
+        "'.lower() == 'true' else 'bumperbot_controller/odom'"])
+
     localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
             FindPackageShare("bumperbot_localization"), "launch", "local_localization.launch.py"])]),
-        launch_arguments={"use_sim_time": use_sim}.items(),
+        launch_arguments={"use_sim_time": use_sim, "odom_topic": odom_topic}.items(),
         condition=IfCondition(use_localization))
 
     trajectory = IncludeLaunchDescription(
