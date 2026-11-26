@@ -4,9 +4,10 @@ from ament_index_python.packages import get_package_share_directory
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.substitutions import FindPackageShare
 
 NOISY_DEFAULTS = {
     "use_noisy": "false",
@@ -25,6 +26,8 @@ def generate_launch_description():
     use_sim = LaunchConfiguration("use_sim")
     use_joystick = LaunchConfiguration("use_joystick")
     use_rviz = LaunchConfiguration("use_rviz")
+    use_localization = LaunchConfiguration("use_localization")
+    use_trajectory = LaunchConfiguration("use_trajectory")
 
     use_sim_arg = DeclareLaunchArgument(
         "use_sim", default_value="true",
@@ -37,6 +40,14 @@ def generate_launch_description():
     use_rviz_arg = DeclareLaunchArgument(
         "use_rviz", default_value="false",
         description="Also start RViz")
+
+    use_localization_arg = DeclareLaunchArgument(
+        "use_localization", default_value="false",
+        description="Also start the EKF and the IMU republisher (needs use_noisy:=true in simulation)")
+
+    use_trajectory_arg = DeclareLaunchArgument(
+        "use_trajectory", default_value="false",
+        description="Also start the trajectory plotters (odometry, EKF, ground truth)")
     
     noisy_declares = [DeclareLaunchArgument(k, default_value=v) for k, v in NOISY_DEFAULTS.items()]
     
@@ -60,15 +71,35 @@ def generate_launch_description():
         parameters=[{"use_sim_time": ParameterValue(use_sim, value_type=bool)}],
         output="screen",
         condition=IfCondition(use_rviz))
+
+    localization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([PathJoinSubstitution([
+            FindPackageShare("bumperbot_localization"), "launch", "local_localization.launch.py"])]),
+        launch_arguments={"use_sim_time": use_sim}.items(),
+        condition=IfCondition(use_localization))
+
+    trajectory = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([PathJoinSubstitution([
+            FindPackageShare("bumperbot_utils"), "launch", "trajectories.launch.py"])]),
+        launch_arguments={
+            "use_sim_time": use_sim,
+            "ground_truth": use_sim,                        # exists only in the simulation
+            "noisy": LaunchConfiguration("use_noisy"),
+        }.items(),
+        condition=IfCondition(use_trajectory))
         
     return LaunchDescription([
         use_sim_arg,
         use_joystick_arg,
         use_rviz_arg,
+        use_localization_arg,
+        use_trajectory_arg,
         *noisy_declares,
         simulated,
         real,
         joystick,
         rviz,
+        localization,
+        trajectory,
 
     ])
