@@ -45,6 +45,9 @@ class OdometryMotionModel(Node):
         # considered undefined and delta_rot1 is set to 0.
         self.declare_parameter("min_translation", 0.01)
 
+        self.declare_parameter("odom_topic", "bumperbot_controller/odom")
+        odom_topic = self.get_parameter("odom_topic").get_parameter_value().string_value
+
         self.alpha1 = self.get_parameter("alpha1").get_parameter_value().double_value
         self.alpha2 = self.get_parameter("alpha2").get_parameter_value().double_value
         self.alpha3 = self.get_parameter("alpha3").get_parameter_value().double_value
@@ -64,7 +67,7 @@ class OdometryMotionModel(Node):
             pose.orientation.w = 1.0  # valid identity quaternion
 
         self.odom_sub = self.create_subscription(
-            Odometry, "bumperbot_controller/odom_noisy", self.odomCallback, 10)
+            Odometry, odom_topic, self.odomCallback, 10)
         self.pose_array_pub = self.create_publisher(
             PoseArray, "odometry_motion/samples", 10)
 
