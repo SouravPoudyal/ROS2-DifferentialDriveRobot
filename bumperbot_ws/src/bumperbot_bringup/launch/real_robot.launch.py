@@ -2,11 +2,9 @@ import os
 from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.parameter_descriptions import ParameterValue
-from launch.substitutions import Command
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration
 from launch.conditions import IfCondition
 from launch.substitutions import Command, LaunchConfiguration, PythonExpression
 
@@ -82,8 +80,6 @@ def generate_launch_description():
             "controllers_file": os.path.join(ctrl_dir, "config", "bumperbot_controllers_real.yaml"),
             "use_simple_controller": LaunchConfiguration("use_simple_controller"),
             "odom_child_frame": "base_footprint_ekf",
-            "vx_cov": "0.004",
-            "wz_cov": "0.04",
         }.items())   
 
     return LaunchDescription([

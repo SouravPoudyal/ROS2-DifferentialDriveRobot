@@ -28,8 +28,15 @@ class SimpleController(Node):
         self.declare_parameter("odom_topic", self.ODOM_TOPIC)
         self.declare_parameter("tf_child_frame", self.TF_CHILD_FRAME)
         self.declare_parameter("odom_child_frame", "base_footprint")
-        self.declare_parameter("vx_cov", 0.0)
-        self.declare_parameter("wz_cov", 0.0)
+        self.declare_parameter("enable_odom_tf", True)
+        self.declare_parameter(
+            "pose_covariance_diagonal",
+            [1.0e-3, 1.0e-3, 1.0e6, 1.0e6, 1.0e6, 1.0e-2],
+        )
+        self.declare_parameter(
+            "twist_covariance_diagonal",
+            [4.0e-3, 1.0e-3, 1.0e6, 1.0e6, 1.0e6, 4.0e-2],
+        )
         self.r = self.get_parameter("wheel_radius").get_parameter_value().double_value
         self.L = self.get_parameter("wheel_separation").get_parameter_value().double_value
         self.drive_wheels = self.get_parameter("drive_wheels").value
@@ -47,17 +54,25 @@ class SimpleController(Node):
         self.theta = 0.0
 
         self.inv_conversion = np.linalg.inv(conversion)
-        self.wheel_cmd_pub = self.create_publisher(Float64MultiArray, "simple_velocity_controller/commands", 10)
+
+        self.wheel_cmd_pub = None
+        if self.drive_wheels:
+            self.wheel_cmd_pub = self.create_publisher(Float64MultiArray, "simple_velocity_controller/commands", 10)
+            self.vel_sub = self.create_subscription(Twist, "bumperbot_controller/cmd_vel", self.vel_callback, 10)
+
         self.odom_pub = self.create_publisher(Odometry, self.get_parameter("odom_topic").value, 10)
-        self.vel_sub = self.create_subscription(Twist, "bumperbot_controller/cmd_vel", self.vel_callback, 10)
         self.joint_sub = self.create_subscription(JointState, "joint_states", self.joint_callback, 10)
 
         self.odom_msg = Odometry()
         self.odom_msg.header.frame_id = "odom"
         self.odom_msg.child_frame_id = self.get_parameter("odom_child_frame").value
-        self.odom_msg.twist.covariance[0] = self.get_parameter("vx_cov").value
-        self.odom_msg.twist.covariance[7] = self.get_parameter("vx_cov").value
-        self.odom_msg.twist.covariance[35] = self.get_parameter("wz_cov").value
+        self.enable_odom_tf = self.get_parameter("enable_odom_tf").value
+        pose_cov = self.get_parameter("pose_covariance_diagonal").value
+        twist_cov = self.get_parameter("twist_covariance_diagonal").value
+
+        for i, idx in enumerate((0, 7, 14, 21, 28, 35)):
+            self.odom_msg.pose.covariance[idx] = float(pose_cov[i])
+            self.odom_msg.twist.covariance[idx] = float(twist_cov[i])
 
         self.br = TransformBroadcaster(self)
         self.tf_msg = TransformStamped()
@@ -122,12 +137,13 @@ class SimpleController(Node):
         self.odom_msg.twist.twist.angular.z = angular
         self.odom_pub.publish(self.odom_msg)
 
-        self.tf_msg.header.stamp = stamp
-        self.tf_msg.transform.translation.x = self.x
-        self.tf_msg.transform.translation.y = self.y
-        self.tf_msg.transform.rotation.z = qz
-        self.tf_msg.transform.rotation.w = qw
-        self.br.sendTransform(self.tf_msg)
+        if self.enable_odom_tf:
+            self.tf_msg.header.stamp = stamp
+            self.tf_msg.transform.translation.x = self.x
+            self.tf_msg.transform.translation.y = self.y
+            self.tf_msg.transform.rotation.z = qz
+            self.tf_msg.transform.rotation.w = qw
+            self.br.sendTransform(self.tf_msg)
 
 
 def main():

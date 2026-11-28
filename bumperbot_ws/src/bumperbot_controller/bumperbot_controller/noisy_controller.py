@@ -53,10 +53,6 @@ class NoisyController(SimpleController):
         self.declare_parameter("vel_cov_floor_v", 6e-6)        # m^2/s^2, odom vx covariance at rest
         self.declare_parameter("vel_cov_floor_w", 1.5e-3)      # rad^2/s^2, odom wz covariance at rest
 
-        #covariances
-        self.odom_msg.twist.covariance[0] = 0.02   # vx
-        self.odom_msg.twist.covariance[7] = 0.02   # vy
-        self.odom_msg.twist.covariance[35] = 0.02   # yaw rate
         
 
         p = lambda n: self.get_parameter(n).value
@@ -96,7 +92,8 @@ class NoisyController(SimpleController):
         self.cmd_ramped = [0.0, 0.0]
         self.cmd_filtered = [0.0, 0.0]
         self.last_cmd_time = self.get_clock().now()
-        self.create_timer(1.0 / p("command_rate_hz"), self.command_step)
+        if self.drive_wheels:
+            self.create_timer(1.0 / p("command_rate_hz"), self.command_step)
 
         self.get_logger().info(
             f"NOISY controller: pos_std={self.pos_std} incr={self.incr_ratio} "
@@ -106,6 +103,8 @@ class NoisyController(SimpleController):
 
     # ---------- command side: wheel response ----------
     def vel_callback(self, msg: Twist):
+        if not self.drive_wheels:
+            return
         robot_speed = np.array([[msg.linear.x], [msg.angular.z]])
         ws = self.inv_conversion @ robot_speed          # [[right], [left]]
         target = [float(ws[1, 0]), float(ws[0, 0])]     # [left, right]

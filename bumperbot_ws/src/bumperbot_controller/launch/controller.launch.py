@@ -1,4 +1,5 @@
 import os
+import yaml
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -31,19 +32,43 @@ def spawner(name, controllers_file):
 def launch_setup(context, *args, **kwargs):
     cfg = lambda k: LaunchConfiguration(k).perform(context)
     use_simple = cfg("use_simple_controller").lower() == "true"
-    use_noisy = cfg("use_noisy").lower() == "true"
     use_sim_time = cfg("use_sim_time").lower() == "true"
+    requested_noisy = cfg("use_noisy").lower() == "true"
+    use_noisy = requested_noisy and use_sim_time
     controllers_file = cfg("controllers_file")
+
+    with open(controllers_file, "r") as f:
+        ctrl_yaml = (
+            yaml.safe_load(f)
+            .get("bumperbot_controller", {})
+            .get("ros__parameters", {})
+        )
+
+    shared_params = {
+        "wheel_radius": float(ctrl_yaml.get("wheel_radius", cfg("wheel_radius"))),
+        "wheel_separation": float(ctrl_yaml.get("wheel_separation", cfg("wheel_separation"))),
+        "odom_child_frame": cfg("odom_child_frame") or ctrl_yaml.get("base_frame_id", "base_footprint"),
+        "enable_odom_tf": bool(ctrl_yaml.get("enable_odom_tf", True)),
+        "pose_covariance_diagonal": [
+            float(v) for v in ctrl_yaml.get(
+                "pose_covariance_diagonal",
+                [1.0e-3, 1.0e-3, 1.0e6, 1.0e6, 1.0e6, 1.0e-2],
+            )
+        ],
+        "twist_covariance_diagonal": [
+            float(v) for v in ctrl_yaml.get(
+                "twist_covariance_diagonal",
+                [4.0e-3, 1.0e-3, 1.0e6, 1.0e6, 1.0e6, 4.0e-2],
+            )
+        ],
+        "use_sim_time": use_sim_time,
+    }
 
     actions = [spawner("joint_state_broadcaster", controllers_file)]
 
     if use_simple:
         # ---- custom kinematics/odometry node (optionally noisy) ----
-        params = {
-            "wheel_radius": float(cfg("wheel_radius")),
-            "wheel_separation": float(cfg("wheel_separation")),
-            "use_sim_time": use_sim_time,
-        }
+        params = dict(shared_params)
         if use_noisy:
             params.update({
                 "position_noise_std": float(cfg("noise_position_std")),
@@ -59,14 +84,6 @@ def launch_setup(context, *args, **kwargs):
                 "right_gain": float(cfg("right_gain")),
                 "velocity_noise_ratio": float(cfg("velocity_noise_ratio")),
             })
-        
-        if not use_noisy:
-            # Plain controller (real robot): what the EKF needs from the odometry message.
-            params.update({
-                "odom_child_frame": cfg("odom_child_frame"),
-                "vx_cov": float(cfg("vx_cov")),
-                "wz_cov": float(cfg("wz_cov")),
-            })       
 
         controller_node = Node(
             package="bumperbot_controller",
@@ -84,12 +101,7 @@ def launch_setup(context, *args, **kwargs):
                 package="bumperbot_controller",
                 executable="simple_controller.py",
                 name="simple_controller",
-                parameters=[{
-                    "wheel_radius": params["wheel_radius"],
-                    "wheel_separation": params["wheel_separation"],
-                    "use_sim_time": use_sim_time,
-                    "drive_wheels": False,
-                }],
+                parameters=[{**shared_params, "drive_wheels": False}],
                 output="screen",
             ))
     else:
@@ -106,6 +118,23 @@ def launch_setup(context, *args, **kwargs):
             output="screen",
         )
         actions += [spawner("bumperbot_controller", controllers_file), relay]
+        if use_noisy:
+            actions.append(Node(
+                package="bumperbot_controller",
+                executable="noisy_controller.py",
+                name="noisy_odometry",
+                parameters=[{
+                    **shared_params,
+                    "drive_wheels": False,
+                    "position_noise_std": float(cfg("noise_position_std")),
+                    "increment_noise_ratio": float(cfg("noise_increment_ratio")),
+                    "quantization_cpr": float(cfg("noise_cpr")),
+                    "sample_rate_hz": float(cfg("sample_rate_hz")),
+                    "sample_jitter_s": float(cfg("sample_jitter_s")),
+                    "seed": int(cfg("noise_seed")),
+                    "odom_topic": "bumperbot_controller/odom_noisy",
+                }],
+                output="screen"))
 
     return actions
 
@@ -114,18 +143,15 @@ def generate_launch_description():
     default_controllers_file = os.path.join(
         get_package_share_directory("bumperbot_controller"),
         "config", "bumperbot_controllers.yaml")
-    
 
     return LaunchDescription([
         DeclareLaunchArgument("wheel_radius", default_value="0.033"),
         DeclareLaunchArgument("wheel_separation", default_value="0.1402"),
         DeclareLaunchArgument("use_sim_time", default_value="true"),
         DeclareLaunchArgument("controllers_file", default_value=default_controllers_file),
-        DeclareLaunchArgument("odom_child_frame", default_value="base_footprint"),
-        DeclareLaunchArgument("vx_cov", default_value="0.0"),
-        DeclareLaunchArgument("wz_cov", default_value="0.0"),
+        DeclareLaunchArgument("odom_child_frame", default_value=""),
         DeclareLaunchArgument("use_noisy", default_value="false",
-                              description="Run the noise-injecting controller (simple controller only)"),
+                              description="Run the noise-injecting controller (simulation only)"),
         *[DeclareLaunchArgument(k, default_value=v) for k, v in NOISY_DEFAULTS.items()],
         OpaqueFunction(function=launch_setup),
     ])
