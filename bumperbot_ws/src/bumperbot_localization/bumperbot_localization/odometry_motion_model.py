@@ -44,6 +44,7 @@ class OdometryMotionModel(Node):
         # Below this translation per message, the heading of the motion is
         # considered undefined and delta_rot1 is set to 0.
         self.declare_parameter("min_translation", 0.01)
+        self.declare_parameter("min_rotation", 0.01)  # rad (~0.6 deg)
 
         self.declare_parameter("odom_topic", "bumperbot_controller/odom")
         odom_topic = self.get_parameter("odom_topic").get_parameter_value().string_value
@@ -55,6 +56,8 @@ class OdometryMotionModel(Node):
         self.nr_samples = self.get_parameter("nr_samples").get_parameter_value().integer_value
         self.min_translation = (
             self.get_parameter("min_translation").get_parameter_value().double_value)
+        self.min_rotation = (
+            self.get_parameter("min_rotation").get_parameter_value().double_value)
 
         if self.nr_samples <= 0:
             self.get_logger().fatal(
@@ -92,6 +95,10 @@ class OdometryMotionModel(Node):
         # Motion model (Probabilistic Robotics, odometry model)
         delta_trasl = sqrt(odom_x_increment ** 2 + odom_y_increment ** 2)
 
+        # Skip update if robot hasn't moved enough (keeps last_odom_* unchanged so slow motion accumulates)
+        if delta_trasl < self.min_translation and fabs(odom_theta_increment) < self.min_rotation:
+            return
+
         if delta_trasl < self.min_translation:
             delta_rot1 = 0.0
         else:
@@ -100,11 +107,22 @@ class OdometryMotionModel(Node):
 
         delta_rot2 = angle_diff(odom_theta_increment, delta_rot1)
 
-        # Standard deviations of the noise (random.gauss expects sigma)
-        rot1_std = self.alpha1 * fabs(delta_rot1) + self.alpha2 * delta_trasl
+        # Treat backward motion symmetrically so reversing or braking rebound
+        # doesn't turn a 1 cm step into a 2*pi noise explosion
+        delta_rot1_noise = min(
+            fabs(angle_diff(delta_rot1, 0.0)),
+            fabs(angle_diff(delta_rot1, pi))
+        )
+        delta_rot2_noise = min(
+            fabs(angle_diff(delta_rot2, 0.0)),
+            fabs(angle_diff(delta_rot2, pi))
+        )
+
+        # Standard deviations of the noise
+        rot1_std = self.alpha1 * delta_rot1_noise + self.alpha2 * delta_trasl
         trasl_std = (self.alpha3 * delta_trasl
-                     + self.alpha4 * (fabs(delta_rot1) + fabs(delta_rot2)))
-        rot2_std = self.alpha1 * fabs(delta_rot2) + self.alpha2 * delta_trasl
+                     + self.alpha4 * (delta_rot1_noise + delta_rot2_noise))
+        rot2_std = self.alpha1 * delta_rot2_noise + self.alpha2 * delta_trasl
 
         for sample in self.samples.poses:
             rot1_noise = random.gauss(0.0, rot1_std)
