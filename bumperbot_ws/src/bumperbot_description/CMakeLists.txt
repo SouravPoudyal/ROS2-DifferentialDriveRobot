@@ -8,10 +8,14 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 
-install(
-  DIRECTORY meshes urdf launch rviz models worlds photos
-  DESTINATION share/${PROJECT_NAME}
-)
+foreach(dir meshes urdf launch rviz models worlds photos)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${dir}")
+    install(
+      DIRECTORY ${dir}
+      DESTINATION share/${PROJECT_NAME}
+    )
+  endif()
+endforeach()
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
