@@ -73,6 +73,10 @@ def generate_launch_description():
 
     joystick = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(ctrl_dir, "launch", "joystick_teleop.launch.py")),
+        launch_arguments={
+            "use_sim_time": use_sim,
+            "use_simple_controller": LaunchConfiguration("use_simple_controller"),
+        }.items(),
         condition=IfCondition(use_joystick))
 
     rviz = Node(
