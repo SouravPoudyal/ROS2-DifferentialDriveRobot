@@ -1,11 +1,12 @@
 import os
+from os import pathsep
 from pathlib import Path
 from ament_index_python import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.parameter_descriptions import ParameterValue
-from launch.substitutions import Command, LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -23,12 +24,22 @@ def generate_launch_description():
             bumperbot_description_dir, 'urdf', 'bumperbot.urdf.xacro'),
         description='Absolute path to robot urdf file'
     )
-    odom_msg = "ignition.msgs.Odometry" if is_ignition else "gz.msgs.Odometry"
 
-    resource_path = str(Path(bumperbot_description_dir).parent.resolve())
+    world_name_arg = DeclareLaunchArgument(name="world_name", default_value="empty")
+
+    world_path = PathJoinSubstitution([
+        bumperbot_description_dir,
+        "worlds",
+        PythonExpression(expression=["'", LaunchConfiguration("world_name"), "'", " + '.world'"])
+
+    ])
+
+    model_path = str(Path(bumperbot_description_dir).parent.resolve())
+    model_path += pathsep + os.path.join(bumperbot_description_dir, "models") 
+
     resource_env = SetEnvironmentVariable(
         name='IGN_GAZEBO_RESOURCE_PATH' if is_ignition else 'GAZEBO_RESOURCE_PATH',
-        value=resource_path
+        value=model_path
     )
     ign_plugin_env = SetEnvironmentVariable(
         name='IGN_GAZEBO_SYSTEM_PLUGIN_PATH',
@@ -47,17 +58,24 @@ def generate_launch_description():
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')),
-            launch_arguments={'gz_args': '-v 4 -r empty.sdf'}.items()
+            launch_arguments={
+                "gz_args": PythonExpression(["'", world_path, " -v 4 -r'"])
+                }.items()
         )
-
+    
+    odom_msg = "ignition.msgs.Odometry" if is_ignition else "gz.msgs.Odometry"
     clock_msg = "ignition.msgs.Clock" if is_ignition else "gz.msgs.Clock"
     imu_msg = "ignition.msgs.IMU" if is_ignition else "gz.msgs.IMU"
+    laser_msg = "ignition.msgs.LaserScan" if is_ignition else "gz.msgs.LaserScan"
+
     gz_ros2_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[f'/clock@rosgraph_msgs/msg/Clock[{clock_msg}',
                    f'/imu@sensor_msgs/msg/Imu[{imu_msg}',
-                   f'/model/bumperbot/odometry@nav_msgs/msg/Odometry[{odom_msg}',],
+                   f'/model/bumperbot/odometry@nav_msgs/msg/Odometry[{odom_msg}',
+                   f'/scan@sensor_msgs/msg/LaserScan[{laser_msg}',
+                   ],
         output='screen'
     )
 
@@ -70,6 +88,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         model_arg,
+        world_name_arg,
         resource_env,
         ign_plugin_env,
         robot_state_publisher_node,

@@ -21,14 +21,17 @@ def generate_launch_description():
     desc_dir = get_package_share_directory("bumperbot_description")
     ctrl_dir = get_package_share_directory("bumperbot_controller")
 
+    world_name_arg = DeclareLaunchArgument("world_name", default_value="empty")
+
     declares = [DeclareLaunchArgument(k, default_value=v) for k, v in NOISY_DEFAULTS.items()]
 
     gazebo = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(desc_dir, "launch", "gazebo.launch.py")))
+    PythonLaunchDescriptionSource(os.path.join(desc_dir, "launch", "gazebo.launch.py")),
+    launch_arguments={"world_name": LaunchConfiguration("world_name")}.items())
 
     controller = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(ctrl_dir, "launch", "controller.launch.py")),
         launch_arguments={"use_sim_time": "true",
                           **{k: LaunchConfiguration(k) for k in NOISY_DEFAULTS}}.items())
 
-    return LaunchDescription(declares + [gazebo, controller])
+    return LaunchDescription([world_name_arg] + declares + [gazebo, controller])
