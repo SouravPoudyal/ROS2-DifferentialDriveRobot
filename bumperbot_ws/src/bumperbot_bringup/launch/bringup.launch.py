@@ -28,6 +28,12 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz")
     use_localization = LaunchConfiguration("use_localization")
     use_trajectory = LaunchConfiguration("use_trajectory")
+    use_noisy = LaunchConfiguration("use_noisy")
+    use_lidar = LaunchConfiguration("use_lidar")
+
+    use_lidar_arg = DeclareLaunchArgument(
+        "use_lidar", default_value="auto",
+        description="Start RPLIDAR on real robot: auto (if /dev/rplidar exists), true, or false")
 
     use_sim_arg = DeclareLaunchArgument(
         "use_sim", default_value="true",
@@ -48,16 +54,22 @@ def generate_launch_description():
     use_trajectory_arg = DeclareLaunchArgument(
         "use_trajectory", default_value="false",
         description="Also start the trajectory plotters (odometry, EKF, ground truth)")
+
+    world_name_arg = DeclareLaunchArgument(
+        "world_name", default_value="empty",
+        description="World in bumperbot_description/worlds, without .world")
     
     noisy_declares = [DeclareLaunchArgument(k, default_value=v) for k, v in NOISY_DEFAULTS.items()]
     
     simulated = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_dir, "launch", "simulated_robot.launch.py")),
+        launch_arguments={"world_name": LaunchConfiguration("world_name")}.items(),
         condition=IfCondition(use_sim))
 
     real = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(bringup_dir, "launch", "real_robot.launch.py")),
-        condition=UnlessCondition(use_sim))
+            PythonLaunchDescriptionSource(os.path.join(bringup_dir, "launch", "real_robot.launch.py")),
+            launch_arguments={"use_lidar": use_lidar}.items(),
+            condition=UnlessCondition(use_sim))
 
     joystick = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(ctrl_dir, "launch", "joystick_teleop.launch.py")),
@@ -74,8 +86,8 @@ def generate_launch_description():
 
     # simulation: noisy controller output, real robot: the controller's own odometry
     odom_topic = PythonExpression([
-        "'bumperbot_controller/odom_noisy' if '", use_sim,
-        "'.lower() == 'true' else 'bumperbot_controller/odom'"])
+        "'bumperbot_controller/odom_noisy' if ('", use_sim, "'.lower() == 'true' and '", use_noisy,
+        "'.lower() == 'true') else 'bumperbot_controller/odom'"])
 
     localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
@@ -99,6 +111,8 @@ def generate_launch_description():
         use_rviz_arg,
         use_localization_arg,
         use_trajectory_arg,
+        world_name_arg,
+        use_lidar_arg,
         *noisy_declares,
         simulated,
         real,
