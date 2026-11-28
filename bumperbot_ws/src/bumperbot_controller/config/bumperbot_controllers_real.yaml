@@ -24,15 +24,26 @@ bumperbot_controller:
     right_wheel_names: ['wheel_right_joint']
     wheel_separation: 0.1402
     wheel_radius: 0.033
+    wheel_separation_multiplier: 1.0
+    left_wheel_radius_multiplier: 1.0
+    right_wheel_radius_multiplier: 1.0
     use_stamped_vel: false
     odom_frame_id: odom
     base_frame_id: base_footprint
-    enable_odom_tf: true
+    enable_odom_tf: true            # false once the EKF publishes odom -> base_footprint
     publish_rate: 50.0
     cmd_vel_timeout: 0.5
     open_loop: false
+    position_feedback: true        # if the parameter exists on your Humble version
     velocity_rolling_window_size: 10
+    publish_limited_velocity: true
+    pose_covariance_diagonal:  [1.0e-3, 1.0e-3, 1.0e6, 1.0e6, 1.0e6, 1.0e-2]
+    twist_covariance_diagonal: [4.0e-3, 1.0e-3, 1.0e6, 1.0e6, 1.0e6, 4.0e-2]
     linear.x.has_velocity_limits: true
-    linear.x.max_velocity: 0.5
+    linear.x.max_velocity: 0.4
+    linear.x.has_acceleration_limits: true
+    linear.x.max_acceleration: 0.8
     angular.z.has_velocity_limits: true
     angular.z.max_velocity: 2.0
+    angular.z.has_acceleration_limits: true
+    angular.z.max_acceleration: 3.0
